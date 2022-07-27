@@ -25,3 +25,14 @@ app.post('/api/notes', (req, res)=>{
     });
   });
 });
+
+app.get('api/notes/:id', (req,res)=>{
+  res.json(notes[req.params.id]);
+});
+app.get('api/notes', (req, res)=>{
+  fs.readFile('./db/db.json', 'utf8', (err, data) =>{
+    if (err) throw err;
+    let notes = JSON.parse(data);
+    res.json(notes);
+  });
+});
