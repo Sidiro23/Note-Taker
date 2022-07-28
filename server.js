@@ -1,64 +1,81 @@
-
 //requires express module
 const express = require('express');
+
 const fs = require('fs');
 const path = require('path');
-// instantiate the server
-const app =express();
 
-//port 
+// instantiate the server
+const app = express();
+//port
 const PORT = process.env.PORT || 3001;
 
-app.use(express.static('public'));
-app.use(express.urlencoded({ extended : true}));
+const notes = require('./db/db.json');
+
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(express.static('public'));
 
-app.get('/notes', (req,res)=>{
-  res.sendFile(path.join(__dirname, '/public/notes.html' ));
+app.get('/api/notes', (req, res) => {
+    res.json(notes.slice(1));
 });
 
-app.get('/api/notes', (req, res)=>{
-  res.sendFile(path.join(__dirname, 'db/db/json'));
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, './public/index.html'));
 });
 
-
-
-app.get('*', (req,res)=>{
-  res.sendFile(path.join(__dirname, '/public/index.html'));
-});
-  
-// receive new note to save 
-app.post("/api/notes", (req, res) => {
-  let newNote = req.body;
-  let noteList = JSON.parse(fs.readFileSync("./db/db.json", "utf8"));
-  let notelength = (noteList.length).toString();
-
-  //create new property called id based on length and assign it to each json object
-  newNote.id = notelength;
-  //push updated note to the data containing notes history in db.json
-  noteList.push(newNote);
-
-  //write the updated data to db.json
-  fs.writeFileSync("./db/db.json", JSON.stringify(noteList));
-  res.json(noteList);
-})
-
-//delete note according to their  id.
-app.delete("/api/notes/:id", (req, res) => {
-  let noteList = JSON.parse(fs.readFileSync("./db/db.json", "utf8"));
-  let noteId = (req.params.id).toString();
-
-  //filter all notes that does not have matching id and saved them as a new array
-  
-  noteList = noteList.filter(selected =>{
-      return selected.id != noteId;
-  })
-
-  //write the updated data to db.json and display the updated note
-  fs.writeFileSync("./db/db.json", JSON.stringify(noteList));
-  res.json(noteList);
+app.get('/notes', (req, res) => {
+    res.sendFile(path.join(__dirname, './public/notes.html'));
 });
 
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, './public/index.html'));
+});
 
-//listen tot he port when deployed
-app.listen(PORT, () => console.log("Server listening on port " + PORT));
+function createNewNote(body, noteArray) {
+    const newNote = body;
+    if (!Array.isArray(noteArray))
+        noteArray = [];
+    
+    if (noteArray.length === 0)
+        noteArray.push(0);
+
+    body.id = noteArray[0];
+    noteArray[0]++;
+
+    noteArray.push(newNote);
+    fs.writeFileSync(
+        path.join(__dirname, './db/db.json'),
+        JSON.stringify(noteArray, null, 2)
+    );
+    return newNote;
+}
+
+app.post('/api/notes', (req, res) => {
+    const newNote = createNewNote(req.body, notes);
+    res.json(newNote);
+});
+
+function deleteNote(id, noteArray) {
+    for (let i = 0; i < noteArray.length; i++) {
+        let note = noteArray[i];
+
+        if (note.id == id) {
+            noteArray.splice(i, 1);
+            fs.writeFileSync(
+                path.join(__dirname, './db/db.json'),
+                JSON.stringify(noteArray, null, 2)
+            );
+
+            break;
+        }
+    }
+}
+
+app.delete('/api/notes/:id', (req, res) => {
+    deleteNote(req.params.id, notes);
+    res.json(true);
+});
+
+app.listen(PORT, () => {
+    console.log(`API server now on port ${PORT}!`);
+});
