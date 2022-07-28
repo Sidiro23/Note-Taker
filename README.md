@@ -1,7 +1,7 @@
 # Note-Taker
 
 ## Deployed Link:
-https://notetaker124.herokuapp.com/notes
+https://notetaker124.herokuapp.com/
 
 
   ## Badges
